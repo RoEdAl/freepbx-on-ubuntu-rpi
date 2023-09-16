@@ -11,7 +11,7 @@ tasks:
     cmds:
       - |
         for i in *.conf; do
-          echo Task [{{.TASK}}] - unit: {{.UNIT}}, file: $i
+          echo task: [{{.TASK}}] - unit: {{.UNIT}}, file: $i
           env WRITE_FILE_PATH={{.UNIT_DIR}}/$i WRITE_FILE_CNT=$i yq -i --from-file=../cloud-init.yq {{.USER_DATA}}
         done
 
@@ -28,10 +28,37 @@ tasks:
         vars:
           UNIT: '{{clean .ITEM}}'
           USER_DATA: '{{.USER_DATA}}'
-  
+
+  reload-units:
+    internal: true
+    status:
+      - test -n "{{.MNT_POINT}}"
+    cmds:
+      - systemctl daemon-reload
+
+  restart-unit:
+    internal: true
+    requires:
+      vars: [UNIT]
+    cmds:
+      - systemctl --no-block try-restart {{.UNIT}}
+
+  restart-units:
+    internal: true
+    vars:
+      SYSTEMD_UNITS:
+        sh: find -maxdepth 1 -type d -name '*.service'
+    cmds:
+      - for: {var: SYSTEMD_UNITS}
+        task: restart-unit
+        vars:
+          UNIT: '{{clean .ITEM}}'
+
   systemd-units:
     desc: Tune systemd units (services)
     aliases: [default]
+    status:
+      - test -n "{{.MNT_POINT}}"
     cmds:
-      - echo Nothing to do
-  
+      - task: reload-units
+      - task: restart-units

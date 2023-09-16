@@ -13,7 +13,7 @@ tasks:
   install:
     desc:  Additional instalation tasks
     status:
-      - test -d {{.MNT_POINT}}/boot/firmware/headless.rpi
+      - test -f {{.MNT_POINT}}/boot/firmware/headless.rpi
     cmds:
       - |
         sed -i \

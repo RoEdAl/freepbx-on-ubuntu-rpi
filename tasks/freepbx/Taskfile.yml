@@ -53,7 +53,7 @@ tasks:
         vars:
           A2SITE: freepbx
 
-  freepbx-download:
+  download:
     internal: true
     desc: Download and extract FreePBX bundle
     requires:
@@ -83,7 +83,7 @@ tasks:
         echo Task [{{.TASK}}]: Unable to connect to Asterisk >&2
         exit 1
 
-  freepbx-install:
+  install:
     internal: true
     desc: Install FreePBX
     deps: [configure-radius]
@@ -98,7 +98,7 @@ tasks:
       - cmd: fwconsole ma upgradeall
         ignore_error: true
 
-  freepbx-cleanup:
+  cleanup:
     internal: true
     desc: Clean-up working directory
     required:
@@ -106,28 +106,28 @@ tasks:
     cmds:
       - rm -rf {{.WORK_DIR}}
 
-  freepbx-internal:
+  download-and-install:
     internal: true
     desc: Download and install FreePBX (internal)
     vars:
       TMP_DIR:
         sh: mktemp -d
     cmds:
-      - task: freepbx-download
+      - task: download
         vars:
           WORK_DIR: '{{.TMP_DIR}}'
-      - task: freepbx-install
+      - task: install
         vars:
           WORK_DIR: '{{.TMP_DIR}}/freepbx'
       - defer:
-          task: freepbx-cleanup
+          task: cleanup
           vars:
             WORK_DIR: '{{.TMP_DIR}}'
 
   freepbx:
     aliases: [default]
     desc: Download and install FreePBX
-    deps: [freepbx-internal, configure-apache2]
+    deps: [download-and-install, configure-apache2]
     cmds:
       - systemctl enable freepbx apache2
     summary: |

@@ -6,7 +6,7 @@ tasks:
     preconditions:
       - test -d {{.MNT_POINT}}/var/log/journal/
     status:
-      - test -n $(ls -A {{.MNT_POINT}}/var/log/journal)
+      - test -n "$(ls -A {{.MNT_POINT}}/var/log/journal)"
     cmds:
       - rm -rf {{.MNT_POINT}}/var/log/journal/*
 
