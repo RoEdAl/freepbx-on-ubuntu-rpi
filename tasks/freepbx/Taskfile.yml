@@ -96,6 +96,7 @@ tasks:
       - cmd: ./install -n --astrundir=/run/asterisk --webroot=/var/www/freepbx
       - cmd: fwconsole ma disablerepo commercial
       - cmd: fwconsole ma upgradeall
+        ignore_error: true
 
   freepbx-cleanup:
     internal: true

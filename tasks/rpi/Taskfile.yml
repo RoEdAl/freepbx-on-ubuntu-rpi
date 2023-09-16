@@ -14,52 +14,32 @@ tasks:
     cmds:
       - dtc -@ -I dts -O dtb -o {{if .BUILD_DIR}}{{.BUILD_DIR}}/{{end}}novchiq.dtbo novchiq-overlay.dts
 
-  headless-rpi:
-    internal: true
-    status:
-      - test -f {{.FIRMWARE_DIR}}/headless.rpi
-    requires:
-      vars: [FIRMWARE_DIR]
-    cmds:
-      - touch {{.FIRMWARE_DIR}}/headless.rpi
-
   install-files:
     internal: true
     requires:
       vars: [MNT_POINT, FIRMWARE_DIR, ARCHITECTURE]
     status:
-      - test -z {{.MNT_POINT}}
-    deps:
+      - test -f {{.FIRMWARE_DIR}}/headless.rpi
+    cmds:
       - task: novchiq-overlay
         vars:
           BUILD_DIR: '{{.BUILD_DIR}}'
-    cmds:
       - cp {{if .BUILD_DIR}}{{.BUILD_DIR}}/{{end}}novchiq.dtbo {{.FIRMWARE_DIR}}/overlays
       - mv {{.FIRMWARE_DIR}}/config.txt {{.FIRMWARE_DIR}}/config.ubu
       - cp headless-config-{{.ARCHITECTURE}}.txt {{.FIRMWARE_DIR}}/config.txt
-      - task: headless-rpi
-        vars:
-          FIRMWARE_DIR: '{{.FIRMWARE_DIR}}'
+      - touch {{.FIRMWARE_DIR}}/headless.rpi
 
   install:
     desc: Additional instalation tasks
-    summary: |
-      Additional instalation tasks
-
-      Optional variables:
-  
-      * MNT_POINT (default: "" - root dir)
     vars:
       FIRMWARE_DIR: '{{.MNT_POINT}}/boot/firmware'
-      DPKG_ARCHITECTURE:
-        sh: dpkg --print-architecture
     deps:
       - task: install-files
         vars:
           MNT_POINT: '{{.MNT_POINT}}'
           BUILD_DIR: '{{.BUILD_DIR}}'
           FIRMWARE_DIR: '{{.FIRMWARE_DIR}}'
-          ARCHITECTURE: '{{default .DPKG_ARCHITECTURE .ARCHITECTURE}}'
+          ARCHITECTURE: '{{.ARCHITECTURE}}'
  
   cloud-init-internal:
     internal: true
@@ -74,15 +54,8 @@ tasks:
       - yq -i --from-file=cloud-init.yq {{.USER_DATA}}
 
   cloud-init:
+    internal: true
     desc: clud-init configuration
-    summary: |
-      cloud-init configuration
-
-      Required variables:
-
-      * BUILD_DIR
-      * USER_DATA
-      * ARCHITECTURE (armhf, arm64)
     requires:
       vars: [BUILD_DIR, USER_DATA, ARCHITECTURE]
     deps:

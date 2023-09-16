@@ -17,12 +17,6 @@ tasks:
 
   cloud-init:
     desc: cloud-init configuration
-    summary: |
-      cloud-init configuration
-
-      Required variables:
-
-      * USER_DATA
     requires:
       vars: [USER_DATA]
     vars:

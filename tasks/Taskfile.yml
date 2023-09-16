@@ -1,18 +1,95 @@
 version: 3
 
+includes:
+  boot:
+    taskfile: boot/Taskfile.yml
+    dir: boot
+    internal: true
+  freepbx:
+    taskfile: freepbx/Taskfile.yml
+    dir: freepbx
+    internal: true
+  modprobe:
+    taskfile: modprobe/Taskfile.yml
+    dir: modprobe
+    internal: true
+  rpi:
+    taskfile: rpi/Taskfile.yml
+    dir: rpi
+    internal: true
+  pam:
+    taskfile: pam/Taskfile.yml
+    dir: pam
+    internal: true
+  rm-pkgs:
+    taskfile: rm-pkgs/Taskfile.yml
+    dir: rm-pkgs
+    internal: true
+  systemd-journal:
+    taskfile: systemd-journal/Taskfile.yml
+    dir: systemd-journal
+    internal: true
+  systemd-units:
+    taskfile: systemd-units/Taskfile.yml
+    dir: systemd-units
+    internal: true
+  final-msg:
+    taskfile: final-msg/Taskfile.yml
+    dir: final-msg
+    internal: true
+
 tasks:
-  cloud-init:
-    desc: clud-init configuration
-    summary: |
-      cloud-init configuration
-
-      Required variables:
-
-      * USER_DATA (absolute path)
+  cloud-init-pkg:
+    internal: true
     requires:
       vars: [USER_DATA]
+    dir: '..'
     env:
       TASKS_B64:
         sh: tar -cz --exclude=cloud-init.yq -f - tasks | base64
     cmds:
       - yq -i --from-file=tasks/cloud-init.yq {{.USER_DATA}}
+
+  cloud-init:
+    desc: clud-init configuration
+    requires:
+      vars: [USER_DATA, ARCHITECTURE, BUILD_DIR]
+    cmds:
+      - for: [modprobe, systemd-journal, systemd-units, freepbx, final-msg]
+        task: '{{.ITEM}}:cloud-init'
+        vars:
+          USER_DATA: '{{.USER_DATA}}'
+          ARCHITECTURE: '{{.ARCHITECTURE}}'
+          BUILD_DIR: '{{.BUILD_DIR}}'
+      - task: cloud-init-pkg
+        vars:
+          USER_DATA: '{{.USER_DATA}}'
+
+  install:
+    desc: Additional installation tasks
+    requires:
+      vars: [MNT_POINT, ARCHITECTURE, BUILD_DIR]
+    vars:
+      DPKG_ARCHITECTURE:
+        sh: dpkg --print-architecture
+    cmds:
+      - for: [boot, systemd-journal, rpi]
+        task: '{{.ITEM}}:install'
+        vars:
+          MNT_POINT: '{{.MNT_POINT}}'
+          ARCHITECTURE: '{{default .DPKG_ARCHITECTURE .ARCHITECTURE}}'
+          BUILD_DIR: '{{.BUILD_DIR}}'
+
+  default:
+    desc: Running internal tasks
+    vars:
+      DPKG_ARCHITECTURE:
+        sh: dpkg --print-architecture 
+    cmds:
+      - for: [boot, systemd-journal, modprobe, systemd-units, rm-pkgs, pam, freepbx, rpi]
+        task: '{{.ITEM}}:default'
+        vars:
+          MNT_POINT: '{{.MNT_POINT}}'
+          BUILD_DIR: '{{.BUILD_DIR}}'
+          ARCHITECTURE: '{{default .DPKG_ARCHITECTURE .ARCHITECTURE}}'
+        ignore_error: true

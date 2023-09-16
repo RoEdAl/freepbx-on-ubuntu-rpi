@@ -1,36 +1,9 @@
 version: 3
 
 includes:
-  boot:
-    taskfile: tasks/boot/Taskfile.yml
-    dir: tasks/boot
-    internal: true
-  freepbx:
-    taskfile: tasks/freepbx/Taskfile.yml
-    dir: tasks/freepbx
-    internal: true
-  modprobe:
-    taskfile: tasks/modprobe/Taskfile.yml
-    dir: tasks/modprobe
-    internal: true
-  rpi:
-    taskfile: tasks/rpi/Taskfile.yml
-    dir: tasks/rpi
-    internal: true
-  systemd-journal:
-    taskfile: tasks/systemd-journal/Taskfile.yml
-    dir: tasks/systemd-journal
-    internal: true
-  systemd-units:
-    taskfile: tasks/systemd-units/Taskfile.yml
-    dir: tasks/systemd-units
-    internal: true
-  final-msg:
-    taskfile: tasks/final-msg/Taskfile.yml
-    dir: tasks/final-msg
-    internal: true
   tasks:
-    taskfile: tasks/Taskfile.yml 
+    taskfile: tasks/Taskfile.yml
+    dir: tasks
     internal: true
 
 vars:
@@ -94,8 +67,7 @@ tasks:
     cmds:
       - yq {{.TASKFILE_DIR}}/cloud-init/user-data.yml > user-data.yml
       - cp {{.TASKFILE_DIR}}/cloud-init/*.sh .
-      - for: [modprobe, systemd-journal, systemd-units, rpi, freepbx, tasks, final-msg]
-        task: '{{.ITEM}}:cloud-init'
+      - task: tasks:cloud-init
         vars:
           USER_DATA: '{{.USER_DATA}}'
           ARCHITECTURE: '{{.ARCHITECTURE}}'
@@ -137,9 +109,7 @@ tasks:
           MNT_POINT: '{{.MNT_POINT}}'
           WORK_DIR: '{{.WORK_DIR}}'
           ARCHITECTURE: '{{.ARCHITECTURE}}'
-    cmds:
-      - for: [boot, systemd-journal, rpi]
-        task: '{{.ITEM}}:install'
+      - task: tasks:install
         vars:
           MNT_POINT: '{{.MNT_POINT}}'
           ARCHITECTURE: '{{.ARCHITECTURE}}'

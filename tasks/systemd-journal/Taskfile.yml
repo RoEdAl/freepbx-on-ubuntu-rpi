@@ -45,12 +45,6 @@ tasks:
 
   cloud-init:
     desc: clud-init configuration
-    summary: |
-      cloud-init configuration
-
-      Required variables:
-
-      * USER_DATA (absolute path)
     requires:
       vars: [USER_DATA]
     cmds:
