@@ -16,4 +16,5 @@ wget -q http://github.com/go-task/task/releases/latest/download/${DEB_FILE}
 dpkg --install ${DEB_FILE}
 cd ..
 rm -rf $WORK_DIR
+task --version
 echo '[done] Install (go-)task'

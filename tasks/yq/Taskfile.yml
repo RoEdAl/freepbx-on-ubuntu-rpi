@@ -1,0 +1,40 @@
+version: 3
+
+vars:
+  YQ_DOWNLOAD_URL: 'http://github.com/mikefarah/yq/releases/latest/download/'
+
+tasks:
+  rm-dir:
+    internal: true
+    requires:
+      vars: [DIR]
+    cmds:
+      - rm -rf {{.DIR}}
+
+  download-and-install:
+    internal: true
+    requires:
+      vars: [YQ_PKG]
+    vars:
+      WORK_DIR:
+        sh: mktemp -d
+    dir: '{{.WORK_DIR}}'
+    cmds:
+      - wget -q {{.YQ_DOWNLOAD_URL}}/{{.YQ_PKG}}.tar.gz
+      - tar -xf {{.YQ_PKG}}.tar.gz
+      - mv {{.YQ_PKG}} {{.MNT_POINT}}/usr/bin/yq
+      - defer:
+          task: rm-dir
+          vars:
+            DIR: '{{.WORK_DIR}}'
+  yq:
+    aliases: [default]
+    desc: Download and install yq utility
+    vars:
+      YQ_PKG: 'yq_linux_arm{{if eq .ARCHITECTURE "arm64"}}64{{end}}'
+    cmds:
+      - task: download-and-install
+        vars:
+          YQ_PKG: '{{.YQ_PKG}}'
+      - yq --version
+

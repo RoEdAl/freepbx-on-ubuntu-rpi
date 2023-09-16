@@ -37,6 +37,10 @@ includes:
     taskfile: final-msg/Taskfile.yml
     dir: final-msg
     internal: true
+  yq:
+    taskfile: yq/Taskfile.yml
+    dir: yq
+    internal: true
 
 tasks:
   cloud-init-pkg:
@@ -86,7 +90,7 @@ tasks:
       DPKG_ARCHITECTURE:
         sh: dpkg --print-architecture 
     cmds:
-      - for: [boot, systemd-journal, modprobe, systemd-units, rm-pkgs, pam, freepbx, rpi]
+      - for: [boot, systemd-journal, modprobe, systemd-units, rm-pkgs, pam, yq, freepbx, rpi]
         task: '{{.ITEM}}:default'
         vars:
           MNT_POINT: '{{.MNT_POINT}}'
