@@ -1,0 +1,16 @@
+version: 3
+
+tasks:
+  cloud-init:
+    desc: cloud-init configuration
+    requires:
+      vars: [USER_DATA]
+    cmds:
+      - yq -i --from-file=cloud-init.yq {{.USER_DATA}}
+
+  final-msg:
+    desc: Show final message
+    aliases: [default]
+    cmds:
+      - echo Nothing to do
+

@@ -1,0 +1,1 @@
+.final_message = load_str("final-msg.txt")

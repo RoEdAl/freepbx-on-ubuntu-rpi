@@ -1,0 +1,43 @@
+version: 3
+
+tasks:
+  cloud-init-unit:
+    internal: true
+    requires:
+      vars: [UNIT, USER_DATA]
+    dir: '{{.UNIT}}'
+    vars:
+      UNIT_DIR: /lib/systemd/system/{{.UNIT}}.d
+    cmds:
+      - |
+        for i in *.conf; do
+          echo Task [{{.TASK}}] - unit: {{.UNIT}}, file: $i
+          env WRITE_FILE_PATH={{.UNIT_DIR}}/$i WRITE_FILE_CNT=$i yq -i --from-file=../cloud-init.yq {{.USER_DATA}}
+        done
+
+  cloud-init:
+    desc: cloud-init configuration
+    summary: |
+      cloud-init configuration
+
+      Required variables:
+
+      * USER_DATA
+    requires:
+      vars: [USER_DATA]
+    vars:
+      SYSTEMD_UNITS:
+        sh: find -maxdepth 1 -type d -name '*.service'
+    cmds:
+      - for: {var: SYSTEMD_UNITS}
+        task: cloud-init-unit
+        vars:
+          UNIT: '{{clean .ITEM}}'
+          USER_DATA: '{{.USER_DATA}}'
+  
+  systemd-units:
+    desc: Tune systemd units (services)
+    aliases: [default]
+    cmds:
+      - echo Nothing to do
+  

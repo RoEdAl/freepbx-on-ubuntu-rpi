@@ -1,0 +1,21 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2835";
+
+	fragment@0 {
+		target-path = "/soc/mailbox@7e00b840";
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@1 {
+                target-path = "/soc/fb";
+                __overlay__ {
+                        status = "disabled";
+                };
+        };
+};
+

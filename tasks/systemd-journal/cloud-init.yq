@@ -1,0 +1,19 @@
+{   "path": "/lib/systemd/journal.conf.d/audit.conf",
+    "content": load_str("audit.conf")
+} as $a |
+$a.content style |= "literal" |
+
+{   "path": "/lib/systemd/journal.conf.d/storage.conf",
+    "content": load_str("storage.conf")
+} as $s |
+$s.content style |= "literal" |
+
+{   "path": "/lib/systemd/journal.conf.d/syslog.conf",
+    "content": load_str("syslog.conf")
+} as $l |
+$l.content style |= "literal" |
+
+.write_files ref $w |
+$w += $a |
+$w += $s |
+$w += $l

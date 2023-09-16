@@ -1,0 +1,141 @@
+version: 3
+
+includes:
+  a2:
+    taskfile: apache/Taskfile.yml
+    internal: true
+
+tasks:
+  cloud-init:
+    desc: cloud-init configuration
+    requires:
+      vars: [USER_DATA]
+    cmds:
+      - yq -i --from-file=cloud-init.yq {{.USER_DATA}}
+
+  configure-radius:
+    internal: true
+    desc: Update Asterisk's Radius configuration
+    dir: /etc/asterisk
+    label: /etc/asterisk
+    cmds:
+      - sed -i 's";\[radius\]"\[radius\]"g' cdr.conf
+      - sed -i 's";radiuscfg => /usr/local/etc/radiusclient-ng/radiusclient.conf"radiuscfg => /etc/radcli/radiusclient.conf"g' cdr.conf
+      - sed -i 's";radiuscfg => /usr/local/etc/radiusclient-ng/radiusclient.conf"radiuscfg => /etc/radcli/radiusclient.conf"g' cel.conf
+
+  configure-php:
+    internal: true
+    desc: Configure PHP
+    dir: /etc/php/7.4
+    label: /etc/php/7.4
+    cmds:
+      - sed -i 's/\(^upload_max_filesize = \).*/\140M/' apache2/php.ini
+      - sed -i 's/\(^upload_max_filesize = \).*/\140M/' cli/php.ini
+
+  configure-apache2:
+    internal: true
+    desc: Configure Apache
+    deps: [configure-php]
+    cmds:
+      - task: a2:enmod
+        vars:
+          A2MOD: rewrite
+      - task: a2:disconf
+        vars:
+          A2CONF: other-vhosts-access-log
+      - task: a2:enconf
+        vars:
+          A2CONF: freepbx
+      - task: a2:dissite
+        vars:
+          A2SITE: 000-default
+      - task: a2:ensite
+        vars:
+          A2SITE: freepbx
+
+  freepbx-download:
+    internal: true
+    desc: Download and extract FreePBX bundle
+    requires:
+      vars: [WORK_DIR]
+    vars:
+      FREEPBX_BUNDLE: 'freepbx-16.0-latest.tgz'
+    dir: '{{.WORK_DIR}}'
+    cmds:
+      - wget -q http://mirror.freepbx.org/modules/packages/freepbx/{{.FREEPBX_BUNDLE}}
+      - tar -xf {{.FREEPBX_BUNDLE}}
+      - defer: rm {{.FREEPBX_BUNDLE}}
+
+  wait-for-asterisk:
+    internal: true
+    desc: 'Wait for Asterisk service (timeout: 60 sec)'
+    silent: true
+    cmds:
+      - |
+        for i in $(seq 12); do
+          sleep 5
+          echo "Task [{{.TASK}}]: Connecting to Asterisk (attempt $i)"
+          if asterisk -qx 'core show version' 2> /dev/null > /dev/null
+          then
+            exit 0
+          fi
+        done
+        echo Task [{{.TASK}}]: Unable to connect to Asterisk >&2
+        exit 1
+
+  freepbx-install:
+    internal: true
+    desc: Install FreePBX
+    deps: [configure-radius]
+    required:
+      vars: [WORK_DIR]
+    dir: '{{.WORK_DIR}}'
+    cmds:
+      - cmd: ./start_asterisk start
+      - task: wait-for-asterisk
+      - cmd: ./install -n --astrundir=/run/asterisk --webroot=/var/www/freepbx
+      - cmd: fwconsole ma disablerepo commercial
+      - cmd: fwconsole ma upgradeall
+
+  freepbx-cleanup:
+    internal: true
+    desc: Clean-up working directory
+    required:
+      vars: [WORK_DIR]
+    cmds:
+      - rm -rf {{.WORK_DIR}}
+
+  freepbx-internal:
+    internal: true
+    desc: Download and install FreePBX (internal)
+    vars:
+      TMP_DIR:
+        sh: mktemp -d
+    cmds:
+      - task: freepbx-download
+        vars:
+          WORK_DIR: '{{.TMP_DIR}}'
+      - task: freepbx-install
+        vars:
+          WORK_DIR: '{{.TMP_DIR}}/freepbx'
+      - defer:
+          task: freepbx-cleanup
+          vars:
+            WORK_DIR: '{{.TMP_DIR}}'
+
+  freepbx:
+    aliases: [default]
+    desc: Download and install FreePBX
+    deps: [freepbx-internal, configure-apache2]
+    cmds:
+      - systemctl enable freepbx apache2
+    summary: |
+      Download and install FreePBX 16
+
+      Based on:
+
+      * Installing FreePBX 16 on Debian 10.9 - http://wiki.freepbx.org/display/FOP/Installing+FreePBX+16+on+Debian+10.9
+      * Example systemd startup script for FreePBX - http://wiki.freepbx.org/display/FOP/Example+systemd+startup+script+for+FreePBX
+      * Install FreePBX and Asterisk on Ubuntu 22.04 - http://unixcop.com/install-freepbx-and-asterisk-on-ubuntu-22-04/
+      * Install Asterisk on Ubuntu 20.04 - http://gist.github.com/parallaxhub/7ee6c872720f8ba5961becb68a40e412
+      * Install Asterisk 16 LTS on Ubuntu 18.04 / 16.04 & Debian 10/9 - http://gist.github.com/kolosek/f0d1952f784f7f164db145497ce155b6

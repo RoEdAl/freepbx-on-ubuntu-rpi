@@ -1,0 +1,44 @@
+version: 3
+
+tasks:
+  enmod:
+    requires:
+      vars: [A2MOD]
+    desc: Enable Apache module
+    cmds:
+      - a2enmod {{.A2MOD}} > /dev/null
+
+  dismod:
+    requires:
+      vars: [A2MOD]
+    desc: Disable Apache module
+    cmds:
+      - a2dismod {{.A2MOD}} > /dev/null
+
+  enconf:
+    requires:
+      vars: [A2CONF]
+    desc: Enable Apache configuration file
+    cmds:
+      - a2enconf {{.A2CONF}} > /dev/null
+
+  disconf:
+    requires:
+      vars: [A2CONF]
+    desc: Disable Apache configuration file
+    cmds:
+      - a2disconf {{.A2CONF}} > /dev/null
+
+  ensite:
+    requires:
+      vars: [A2SITE]
+    desc: Enable Apache site / virtual host
+    cmds:
+      - a2ensite {{.A2SITE}} > /dev/null
+
+  dissite:
+    requires:
+      vars: [A2SITE]
+    desc: Disable Apache site / virtual host
+    cmds:
+      - a2dissite {{.A2SITE}} > /dev/null

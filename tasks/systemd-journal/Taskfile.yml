@@ -1,0 +1,62 @@
+version: 3
+
+tasks:
+  rm-journal:
+    internal: true
+    preconditions:
+      - test -d {{.MNT_POINT}}/var/log/journal/
+    status:
+      - test -n $(ls -A {{.MNT_POINT}}/var/log/journal)
+    cmds:
+      - rm -rf {{.MNT_POINT}}/var/log/journal/*
+
+  restart-service:
+    internal: true
+    status:
+      - test -n "{{.MNT_POINT}}" -o -f {{.MNT_POINT}}/boot/firmware/headless.rpi
+    cmds:
+      - systemctl restart systemd-journald
+
+  install-files:
+    internal: true
+    requires:
+      vars: [MNT_POINT]
+    status:
+      - test -f {{.MNT_POINT}}/boot/firmware/headless.rpi
+    vars:
+      JOURNALD_CONF_DIR: '{{.MNT_POINT}}/etc/systemd/journald.conf.d'
+    cmds:
+      - mkdir -p {{.JOURNALD_CONF_DIR}}
+      - for: [audit, storage, syslog]
+        cmd: cp {{.ITEM}}.conf {{.JOURNALD_CONF_DIR}}
+
+  install:
+    desc: Additional instalation tasks
+    cmds:
+      - task: install-files
+        vars:
+          MNT_POINT: '{{.MNT_POINT}}'
+      - task: restart-service
+        vars:
+          MNT_POINT: '{{.MNT_POINT}}'
+      - task: rm-journal
+        vars:
+          MNT_POINT: '{{.MNT_POINT}}'
+
+  cloud-init:
+    desc: clud-init configuration
+    summary: |
+      cloud-init configuration
+
+      Required variables:
+
+      * USER_DATA (absolute path)
+    requires:
+      vars: [USER_DATA]
+    cmds:
+      - yq -i --from-file=cloud-init.yq {{.USER_DATA}}
+
+  systemd-journal:
+    desc: Tune systemd journal configuration
+    aliases: [default]
+    deps: [install]

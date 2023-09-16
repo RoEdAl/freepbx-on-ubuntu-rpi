@@ -1,0 +1,19 @@
+{   "path": "/etc/modprobe.d/multipath.conf",
+    "content": load_str("multipath.conf")
+} as $mp |
+$mp.content style |= "literal" |
+
+{   "path": "/etc/modprobe.d/raid.conf",
+    "content": load_str("raid.conf")
+} as $ra |
+$ra.content style |= "literal" |
+
+{   "path": "/etc/modprobe.d/rpi.conf",
+    "content": load_str("rpi.conf")
+} as $rpi |
+$rpi.content style |= "literal" |
+
+.write_files ref $f |
+$f += $mp |
+$f += $ra |
+$f += $rpi

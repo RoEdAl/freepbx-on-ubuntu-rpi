@@ -1,0 +1,15 @@
+version: 3
+
+tasks:
+  pam:
+    aliases: [default]
+    desc: Tweak PAM session configuration for cron and runuser
+    preconditions:
+      - test -d /etc/pam.d
+    dir: /etc/pam.d
+    label: /etc/pam.d
+    cmds:
+      - cp common-session-noninteractive cron-session
+      - sed -i 's/pam_unix.so/pam_unix.so quiet/' cron-session
+      - sed -i '/@include/s/common-session-noninteractive/cron-session/' cron
+      - sed -i 's/pam_unix.so/pam_unix.so quiet/' runuser

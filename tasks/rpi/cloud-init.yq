@@ -1,0 +1,17 @@
+{
+	"path": "/boot/firmware/overlays/novchiq.dtbo",
+	"content": strenv(NOVCHIQ_B64)
+} as $o |
+$o.content tag |= "!!binary" |
+$o.content style |= "literal" |
+
+{
+	"path": "/boot/firmware/config.txt",
+	"content": strenv(CONFIG_TXT)
+} as $c |
+$c.content tag |= "!!binary" |
+$c.content style |= "literal" |
+
+.write_files ref $f |
+$f += $o |
+$f += $c

@@ -1,0 +1,32 @@
+version: 3
+
+tasks:
+  apt-get-remove:
+    internal: true
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    cmds:
+      - |
+        apt-get -y remove --purge \
+          rsyslog \
+          wpasupplicant \
+          multipath-tools \
+          snapd \
+          mdadm \
+          pi-bluetooth \
+          bluez \
+          plymouth
+
+  rm-plymouth-share:
+    internal: true
+    status:
+      - test ! -d /usr/share/plymouth
+    cmds:
+      - rm -rf /usr/share/plymouth
+
+  rm-pkgs:
+    aliases: [default]
+    desc: Remove needless packages
+    cmds:
+      - task: apt-get-remove
+      - task: rm-plymouth-share

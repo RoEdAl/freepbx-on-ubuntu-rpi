@@ -1,0 +1,20 @@
+#
+# Headless Raspberry Pi configuration (ARM32)
+# 
+[all]
+kernel=vmlinuz
+cmdline=cmdline.txt
+initramfs initrd.img followkernel
+
+[all]
+enable_uart=1
+dtoverlay=disable-bt
+dtoverlay=disable-wifi
+dtoverlay=novchiq
+dtoverlay=cma,cma-size=8388608
+
+[all]
+gpu_mem=16
+max_framebuffers=0
+hdmi_ignore_hotplug=1
+enable_tvout=0

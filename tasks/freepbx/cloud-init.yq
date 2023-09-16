@@ -1,0 +1,36 @@
+{   "path": "/lib/systemd/system/freepbx.service",
+    "content": load_str("systemd/freepbx.service")
+} as $s |
+$s.content style |= "literal" |
+
+{   "path": "/lib/systemd/system/freepbx.service.d/scheduling.conf",
+    "content": load_str("systemd/scheduling.conf")
+} as $s1 |
+$s1.content style |= "literal" |
+
+{   "path" : "/etc/odbc.ini",
+    "defer": true,
+    "append": true,
+    "content": load_str("odbc.ini")
+} as $o |
+$o.content style |= "literal" |
+
+{   "path": "/etc/apache2/sites-available/freepbx.conf",
+    "defer": true,
+    "content": load_str("apache/sites/freepbx.conf")
+} as $as |
+$as.content style |= "literal" |
+
+{   "path": "/etc/apache2/conf-available/freepbx.conf",
+    "defer": true,
+    "content": load_str("apache/conf/freepbx.conf")
+} as $ac |
+$ac.content style |= "literal" |
+
+.write_files ref $f |
+$f += $s |
+$f += $s1 |
+$f += $o |
+$f += $as |
+$f += $ac
+

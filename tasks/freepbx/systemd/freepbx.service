@@ -1,0 +1,13 @@
+[Unit]
+Description=FreePBX VoIP Server
+After=mariadb.service
+ConditionFileIsExecutable=/usr/sbin/fwconsole
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/fwconsole start -q
+ExecStop=/usr/sbin/fwconsole stop -q
+
+[Install]
+WantedBy=multi-user.target

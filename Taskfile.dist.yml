@@ -1,0 +1,427 @@
+version: 3
+
+includes:
+  boot:
+    taskfile: tasks/boot/Taskfile.yml
+    dir: tasks/boot
+    internal: true
+  freepbx:
+    taskfile: tasks/freepbx/Taskfile.yml
+    dir: tasks/freepbx
+    internal: true
+  modprobe:
+    taskfile: tasks/modprobe/Taskfile.yml
+    dir: tasks/modprobe
+    internal: true
+  rpi:
+    taskfile: tasks/rpi/Taskfile.yml
+    dir: tasks/rpi
+    internal: true
+  systemd-journal:
+    taskfile: tasks/systemd-journal/Taskfile.yml
+    dir: tasks/systemd-journal
+    internal: true
+  systemd-units:
+    taskfile: tasks/systemd-units/Taskfile.yml
+    dir: tasks/systemd-units
+    internal: true
+  final-msg:
+    taskfile: tasks/final-msg/Taskfile.yml
+    dir: tasks/final-msg
+    internal: true
+  tasks:
+    taskfile: tasks/Taskfile.yml 
+    internal: true
+
+vars:
+  UBUNTU_SERVER_ARM64_LTS_URL: 'http://cdimage.ubuntu.com/releases/22.04.3/release/ubuntu-22.04.3-preinstalled-server-arm64+raspi.img.xz'
+  UBUNTU_SERVER_ARM64_LTS_IMG: ubuntu-22.04.3-preinstalled-server-arm64+raspi.img
+  UBUNTU_SERVER_ARM_LTS_URL: 'http://cdimage.ubuntu.com/releases/22.04.3/release/ubuntu-22.04.3-preinstalled-server-armhf+raspi.img.xz'
+  UBUNTU_SERVER_ARM_LTS_IMG: ubuntu-22.04.3-preinstalled-server-armhf+raspi.img
+
+tasks:
+  show-img-du:
+    internal: true
+    requires:
+      vars: [DU_FILE]
+    cmds:
+      - du -h {{.DU_FILE}}
+      - du -h --apparent-size {{.DU_FILE}}
+    silent: true
+
+  chown:
+    internal: true
+    requires:
+      vars: [FILE]
+    status:
+      - test -z $SUDO_UID
+      - test -z $SUDO_GID
+    cmds:
+      - chown $SUDO_UID:$SUDO_GID {{.FILE}}
+
+  file-rm:
+    internal: true
+    requires:
+      vars: [RFILE]
+    label: rm {{base .RFILE}}
+    status:
+      - test ! -f {{.RFILE}}
+    cmds:
+      - cmd: rm {{.RFILE}}
+        ignore_error: true
+
+  build-dir:
+    status:
+      - test -d build
+    cmds:
+      - mkdir -p build
+
+  cloud-init-user-data-cleanup:
+    internal: true
+    requires:
+      vars: [WORK_DIR]
+    dir: '{{.WORK_DIR}}'
+    cmds:
+      - rm *.sh user-data.yml
+
+  cloud-init-user-data:
+    internal: true
+    requires:
+      vars: [WORK_DIR, ARCHITECTURE]
+    vars:
+      USER_DATA: '{{.WORK_DIR}}/user-data.yml'
+    dir: '{{.WORK_DIR}}'
+    cmds:
+      - yq {{.TASKFILE_DIR}}/cloud-init/user-data.yml > user-data.yml
+      - cp {{.TASKFILE_DIR}}/cloud-init/*.sh .
+      - for: [modprobe, systemd-journal, systemd-units, rpi, freepbx, tasks, final-msg]
+        task: '{{.ITEM}}:cloud-init'
+        vars:
+          USER_DATA: '{{.USER_DATA}}'
+          ARCHITECTURE: '{{.ARCHITECTURE}}'
+          BUILD_DIR: '{{.TASKFILE_DIR}}/build'
+      - |
+        cloud-init devel make-mime \
+            -a user-data.yml:cloud-config \
+            -a 01-install-task.sh:x-shellscript \
+            -a 02-run-tasks.sh:x-shellscript \
+             | gzip -qnc > {{.TASKFILE_DIR}}/build/user-data-{{.ARCHITECTURE}}.gz
+      - defer:
+          task: cloud-init-user-data-cleanup
+          vars:
+            WORK_DIR: '{{.WORK_DIR}}'
+
+  cloud-init-setup:
+    internal: true
+    desc: Configure cloud-init
+    requires:
+      vars: [WORK_DIR, MNT_POINT, ARCHITECTURE]
+    deps:
+      - task: cloud-init-user-data
+        vars:
+          WORK_DIR: '{{.WORK_DIR}}'
+          ARCHITECTURE: '{{.ARCHITECTURE}}'
+    cmds:
+      - cp cloud-init/logging.cfg {{.MNT_POINT}}/etc/cloud/cloud.cfg.d/05_logging.cfg
+      - cp build/user-data-{{.ARCHITECTURE}}.gz {{.MNT_POINT}}/boot/firmware/user-data
+      - yq cloud-init/network-config.yml > {{.MNT_POINT}}/boot/firmware/network-config
+
+  optimize-system:
+    internal: true
+    desc: Optimize system
+    reguires:
+      vars: [WORK_DIR, MNT_POINT, ARCHITECTURE]
+    deps:
+      - task: cloud-init-setup
+        vars:
+          MNT_POINT: '{{.MNT_POINT}}'
+          WORK_DIR: '{{.WORK_DIR}}'
+          ARCHITECTURE: '{{.ARCHITECTURE}}'
+    cmds:
+      - for: [boot, systemd-journal, rpi]
+        task: '{{.ITEM}}:install'
+        vars:
+          MNT_POINT: '{{.MNT_POINT}}'
+          ARCHITECTURE: '{{.ARCHITECTURE}}'
+          BUILD_DIR: '{{.TASKFILE_DIR}}/build'
+  
+  img-create:
+    internal: true
+    desc: Create image file and partition it
+    requires:
+      vars: [UBU_IMG_FILE, UBX_IMG_FILE]
+    deps:
+      - task: file-rm
+        vars:
+          RFILE: '{{.UBX_IMG_FILE}}'
+    vars:
+      IMG_FILE_SIZE:
+        sh: stat --printf=%s {{.UBU_IMG_FILE}}
+    cmds:
+      - truncate -s {{.IMG_FILE_SIZE}} {{.UBX_IMG_FILE}}
+      - |
+        {
+          echo 'label: dos'
+          echo 'start=2048 size=524288 type=c bootable'
+          echo 'size=524288 type=83'
+          echo 'type=83'
+        } | sfdisk -q {{.UBX_IMG_FILE}}
+
+  img-mkfs:
+    internal: true
+    desc: Create filesystems
+    requires:
+      vars: [LOOP_DEV]
+    cmds:
+      - mkfs.vfat -f 1 -F 32 -R 2 -n system-boot -h 0 {{.LOOP_DEV}}p1
+      - mkfs.ext4 -q -e remount-ro -U time -L uboot -O ^64bit,^has_journal,^huge_file,^inline_data,^large_dir,^large_file,ext_attr,extent,^metadata_csum {{.LOOP_DEV}}p2
+      - mkfs.ext4 -q -e remount-ro -U time -L writable -O 64bit,has_journal,^huge_file,inline_data,^large_dir,^large_file,ext_attr,extent,metadata_csum {{.LOOP_DEV}}p3
+
+  img-mount:
+    internal: true
+    desc: Mount loop device
+    requires:
+      vars: [LOOP_DEV, MNT_POINT]
+    cmds:
+      - mount -o lazytime,nobarrier {{.LOOP_DEV}}p3 {{.MNT_POINT}}
+      - mount -o lazytime,nobarrier,X-mount.mkdir {{.LOOP_DEV}}p2 {{.MNT_POINT}}/boot
+      - mount -o tz=UTC,lazytime,showexec,X-mount.mkdir {{.LOOP_DEV}}p1 {{.MNT_POINT}}/boot/firmware
+
+  img-umount:
+    internal: true
+    desc: Unmount image and detach loop device
+    requires:
+      vars: [LOOP_DEV, MNT_POINT]
+    cmds:
+      - umount -R {{.MNT_POINT}}
+      - rmdir {{.MNT_POINT}}
+      - losetup -d {{.LOOP_DEV}}
+
+  img-copy-files:
+    internal: true
+    desc: Copy files between images
+    requires:
+      vars: [SRC_IMG, SRC_DIR, DST_DIR]
+    vars:
+      SRC_LOOP_DEV:
+        sh: losetup -rfP --show {{.SRC_IMG}}
+    cmds:
+      - mkdir -p {{.SRC_DIR}}
+      - mount -o ro {{.SRC_LOOP_DEV}}p2 {{.SRC_DIR}}
+      - mount -o tz=UTC,ro,showexec {{.SRC_LOOP_DEV}}p1 {{.SRC_DIR}}/boot/firmware
+      - cp -a {{.SRC_DIR}}/. {{.DST_DIR}}/
+      - defer:
+          task: img-umount
+          vars:
+            LOOP_DEV: '{{.SRC_LOOP_DEV}}'
+            MNT_POINT: '{{.SRC_DIR}}'
+
+  img-build:
+    internal: true
+    desc: Building image
+    requires:
+      vars: [UBU_IMG_FILE, UBX_IMG_FILE]
+    vars:
+      ARCHITECTURE: '{{if contains "arm64" .UBU_IMG_FILE}}arm64{{else}}armhf{{end}}'
+      UBX_LOOP_DEV:
+        sh: losetup -fP --show {{.UBX_IMG_FILE}}
+      TMP_DIR:
+        sh: mktemp -d
+    cmds:
+      - task: img-mkfs
+        vars:
+          LOOP_DEV: '{{.UBX_LOOP_DEV}}'
+      - cmd: mkdir -p {{.TMP_DIR}}/ubx          
+      - task: img-mount
+        vars:
+          LOOP_DEV: '{{.UBX_LOOP_DEV}}'
+          MNT_POINT: '{{.TMP_DIR}}/ubx'
+      - task: img-copy-files
+        vars:
+          SRC_IMG: '{{.UBU_IMG_FILE}}'
+          SRC_DIR: '{{.TMP_DIR}}/ubu'
+          DST_DIR: '{{.TMP_DIR}}/ubx'
+      - task: optimize-system
+        vars:
+          MNT_POINT: '{{.TMP_DIR}}/ubx'
+          WORK_DIR: '{{.TMP_DIR}}'
+          ARCHITECTURE: '{{.ARCHITECTURE}}'
+      - defer:
+          task: img-build-cleanup
+          vars:
+            UBX_LOOP_DEV: '{{.UBX_LOOP_DEV}}'
+            UBX_IMG_FILE: '{{.UBX_IMG_FILE}}'
+            TMP_DIR: '{{.TMP_DIR}}'
+
+  img-build-cleanup:
+    internal: true
+    desc: Building image cleanup
+    requires:
+      vars: [UBX_LOOP_DEV, TMP_DIR, UBX_IMG_FILE]
+    vars:
+      UBX_DIR: '{{.TMP_DIR}}/ubx'
+    cmds:
+      - fstrim {{.UBX_DIR}}/boot/firmware
+      - fstrim {{.UBX_DIR}}/boot
+      - fstrim {{.UBX_DIR}}
+      - task: img-umount
+        vars:
+          LOOP_DEV: '{{.UBX_LOOP_DEV}}'
+          MNT_POINT: '{{.UBX_DIR}}'
+      - cmd: rmdir {{.TMP_DIR}}
+      - task: show-img-du
+        vars:
+          DU_FILE: '{{.UBX_IMG_FILE}}'
+
+  img-compress:
+    internal: true
+    requires:
+      vars: [IMG_FILE]
+    vars:
+      XZ_FILE: '{{.IMG_FILE}}.xz'
+    deps:
+      - task: file-rm
+        vars:
+          RFILE: '{{.XZ_FILE}}'
+    cmds:
+      - xz -0 -T 0 {{.IMG_FILE}}
+      - task: show-img-du
+        vars:
+          DU_FILE: '{{.XZ_FILE}}'
+
+  img:
+    internal: true
+    desc: Create FreeBPX server image based on Ubuntu for Raspberry Pi
+    label: img {{.UBX_IMG_FILE}}
+    requires:
+      vars: [IMG_FILE]
+    deps: [build-dir]
+    vars:
+      UBX_IMG_FILE: '{{.IMG_FILE | replace "preinstalled" "freepbx"}}'
+    cmds:
+      - task: img-create
+        vars:
+          UBU_IMG_FILE: 'build/{{.IMG_FILE}}'
+          UBX_IMG_FILE: 'build/{{.UBX_IMG_FILE}}'
+      - task: img-build
+        vars:
+          UBU_IMG_FILE: 'build/{{.IMG_FILE}}'
+          UBX_IMG_FILE: 'build/{{.UBX_IMG_FILE}}'
+      - task: img-compress
+        vars:
+          IMG_FILE: 'build/{{.UBX_IMG_FILE}}'
+      - task: chown
+        vars:
+          FILE: 'build/{{.UBX_IMG_FILE}}.xz'
+
+  cloud-init-rm:
+    internal: true
+    dir: build
+    cmds:
+      - rm cloud-init.zip
+    status:
+      - 'test ! -f cloud-init.zip'
+
+  cloud-init-pkg:
+    internal: true
+    requires:
+      vars: [WORK_DIR, ARCHITECTURE]
+    dir: '{{.WORK_DIR}}'
+    cmds:
+      - cmd: zip -0 ../cloud-init-{{.ARCHITECTURE}}.zip user-data network-config 05_logging.cfg
+
+  cloud-init-cleanup:
+    internal: true
+    requires:
+      vars: [WORK_DIR]
+    cmds:
+      - rm -rf {{.WORK_DIR}}
+
+  cloud-init-dep:
+    internal: true
+    label: cloud-init
+    requires:
+      vars: [ARCHITECTURE]
+    vars:
+      TMP_DIR:
+        sh: mktemp -d -p {{joinPath .TASKFILE_DIR "build"}}
+    deps:
+      - task: file-rm
+        vars:
+          RFILE: 'build/cloud-init-{{.ARCHITECTURE}}.zip'
+      - task: cloud-init-user-data
+        vars:
+          WORK_DIR: '{{.TMP_DIR}}'
+          ARCHITECTURE: '{{.ARCHITECTURE}}'
+    cmds:
+      - yq cloud-init/network-config.yml > {{.TMP_DIR}}/network-config
+      - cp build/user-data-{{.ARCHITECTURE}}.gz {{.TMP_DIR}}/user-data
+      - cp cloud-init/logging.cfg {{.TMP_DIR}}/05_logging.cfg
+      - task: cloud-init-pkg
+        vars:
+          WORK_DIR: '{{.TMP_DIR}}'
+          ARCHITECTURE: '{{.ARCHITECTURE}}'
+      - defer:
+          task: cloud-init-cleanup
+          vars:
+            WORK_DIR: '{{.TMP_DIR}}'
+
+  cloud-init:
+    desc: Build cloud-init database
+    deps: [build-dir]
+    cmds:
+      - for: [armhf, arm64]
+        task: cloud-init-dep
+        vars:
+          ARCHITECTURE: '{{.ITEM}}'
+
+  download-ubuntu-img:
+    internal: true
+    status:
+      - test -f build/{{.UBU_IMG}}
+    requires:
+      vars: [UBU_URL, UBU_IMG]
+    label: download {{.UBU_IMG}}
+    deps: [build-dir]
+    cmds:
+      - task: file-rm
+        vars:
+          RFILE: '{{.UBU_IMG}}.xz'
+      - cmd: wget -q {{.UBU_URL}}
+      - task: show-img-du
+        vars:
+          DU_FILE: '{{.UBU_IMG}}.xz'
+      - cmd: xz -kcd {{.UBU_IMG}}.xz > build/{{.UBU_IMG}}
+      - task: show-img-du
+        vars:
+          DU_FILE: 'build/{{.UBU_IMG}}'
+
+  download-ubuntu-server-lts-img:
+    desc: Download and extract Ubuntu Server LTS
+    cmds:
+      - task: download-ubuntu-img
+        vars:
+          UBU_URL: '{{.UBUNTU_SERVER_ARM64_LTS_URL}}'
+          UBU_IMG: '{{.UBUNTU_SERVER_ARM64_LTS_IMG}}'
+      - task: download-ubuntu-img
+        vars:
+          UBU_URL: '{{.UBUNTU_SERVER_ARM_LTS_URL}}'
+          UBU_IMG: '{{.UBUNTU_SERVER_ARM_LTS_IMG}}'
+
+  process-ubuntu-imgs:
+    dir: build
+    desc: Process downloaded Ubuntu images
+    aliases: [default]
+    vars:
+      IMGS:
+        sh: find -maxdepth 1 -type f -name 'ubuntu*preinstalled*+raspi.img'
+    cmds:
+      - for: { var: IMGS }
+        task: img
+        vars:
+          IMG_FILE: '{{clean .ITEM}}'
+
+  clean:
+    desc: Clean build directory
+    cmds:
+      - rm -rf build

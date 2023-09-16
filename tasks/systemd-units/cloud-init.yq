@@ -1,0 +1,7 @@
+{   "path": strenv(WRITE_FILE_PATH),
+    "content": load_str(strenv(WRITE_FILE_CNT))
+} as $f |
+$f.content style |= "literal" |
+
+.write_files ref $w |
+$w += $f

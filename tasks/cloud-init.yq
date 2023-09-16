@@ -1,0 +1,10 @@
+{
+	"path": "/usr/src/ubuntu-freepbx/tasks.tar",
+	"defer": true,
+	"encoding": "gzip",
+	"content": strenv(TASKS_B64)
+} as $t |
+$t.content tag |= "!!binary" |
+$t.content style |= "literal" |
+.write_files ref $f |
+$f += $t

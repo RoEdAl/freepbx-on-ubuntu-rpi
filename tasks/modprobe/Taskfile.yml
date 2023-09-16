@@ -1,0 +1,31 @@
+version: 3
+
+tasks:
+  cloud-init:
+    desc: cloud-init configuration
+    requires:
+      vars: [USER_DATA]
+    cmds:
+      - yq -i --from-file=cloud-init.yq {{.USER_DATA}}
+
+  modprobe:
+    aliases: [default]
+    desc: Blacklist some kernel modules
+    preconditions:
+      - test -d /etc/modprobe.d
+    cmds:
+      - cmd: depmod -ae
+      - cmd: update-initramfs -u
+    summary: |
+      Blacklist some kernel modules
+
+      Blocked modules:
+
+      * RAID,
+      * multipath,
+      * RPi video.
+
+      Based on:
+
+      * Blocking loading of Linux kernel modules - http://wiki.debian.org/KernelModuleBlacklisting
+      * Whole camera/video kernel module stack loaded despite start_x=0 - http://github.com/raspberrypi/firmware/issues/1141
