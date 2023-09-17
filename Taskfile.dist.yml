@@ -298,7 +298,7 @@ tasks:
       vars: [WORK_DIR, ARCHITECTURE]
     dir: '{{.WORK_DIR}}'
     cmds:
-      - cmd: zip -0 ../cloud-init-{{.ARCHITECTURE}}.zip user-data network-config 05_logging.cfg
+      - cmd: zip -0 ../cloud-init-{{.ARCHITECTURE}}.zip user-data network-config 05_logging.cfg README.txt
 
   cloud-init-cleanup:
     internal: true
@@ -327,6 +327,7 @@ tasks:
       - yq cloud-init/network-config.yml > {{.TMP_DIR}}/network-config
       - cp build/user-data-{{.ARCHITECTURE}}.gz {{.TMP_DIR}}/user-data
       - yq cloud-init/logging.yml > {{.TMP_DIR}}/05_logging.cfg
+      - cp cloud-init/README-pkg.txt {{.TMP_DIR}}/README.txt
       - task: cloud-init-pkg
         vars:
           WORK_DIR: '{{.TMP_DIR}}'
