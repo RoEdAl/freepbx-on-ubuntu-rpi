@@ -94,7 +94,7 @@ tasks:
           WORK_DIR: '{{.WORK_DIR}}'
           ARCHITECTURE: '{{.ARCHITECTURE}}'
     cmds:
-      - cp cloud-init/logging.cfg {{.MNT_POINT}}/etc/cloud/cloud.cfg.d/05_logging.cfg
+      - yq cloud-init/logging.yml > {{.MNT_POINT}}/etc/cloud/cloud.cfg.d/05_logging.cfg
       - cp build/user-data-{{.ARCHITECTURE}}.gz {{.MNT_POINT}}/boot/firmware/user-data
       - yq cloud-init/network-config.yml > {{.MNT_POINT}}/boot/firmware/network-config
 
@@ -326,7 +326,7 @@ tasks:
     cmds:
       - yq cloud-init/network-config.yml > {{.TMP_DIR}}/network-config
       - cp build/user-data-{{.ARCHITECTURE}}.gz {{.TMP_DIR}}/user-data
-      - cp cloud-init/logging.cfg {{.TMP_DIR}}/05_logging.cfg
+      - yq cloud-init/logging.yml > {{.TMP_DIR}}/05_logging.cfg
       - task: cloud-init-pkg
         vars:
           WORK_DIR: '{{.TMP_DIR}}'
