@@ -16,10 +16,10 @@ tasks:
   show-img-du:
     internal: true
     requires:
-      vars: [DU_FILE]
+      vars: [FILE]
     cmds:
-      - du -h {{.DU_FILE}}
-      - du -h --apparent-size {{.DU_FILE}}
+      - du -h {{.FILE}}
+      - du -h --apparent-size {{.FILE}}
     silent: true
 
   chown:
@@ -27,20 +27,20 @@ tasks:
     requires:
       vars: [FILE]
     status:
-      - test -z $SUDO_UID
-      - test -z $SUDO_GID
+      - test -z "$SUDO_UID"
+      - test -z "$SUDO_GID"
     cmds:
       - chown $SUDO_UID:$SUDO_GID {{.FILE}}
 
   file-rm:
     internal: true
     requires:
-      vars: [RFILE]
-    label: rm {{base .RFILE}}
+      vars: [FILE]
+    label: rm {{base .FILE}}
     status:
-      - test ! -f {{.RFILE}}
+      - test ! -f {{.FILE}}
     cmds:
-      - cmd: rm {{.RFILE}}
+      - cmd: rm {{.FILE}}
         ignore_error: true
 
   build-dir:
@@ -123,7 +123,7 @@ tasks:
     deps:
       - task: file-rm
         vars:
-          RFILE: '{{.UBX_IMG_FILE}}'
+          FILE: '{{.UBX_IMG_FILE}}'
     vars:
       IMG_FILE_SIZE:
         sh: stat --printf=%s {{.UBU_IMG_FILE}}
@@ -241,7 +241,7 @@ tasks:
       - cmd: rmdir {{.TMP_DIR}}
       - task: show-img-du
         vars:
-          DU_FILE: '{{.UBX_IMG_FILE}}'
+          FILE: '{{.UBX_IMG_FILE}}'
 
   img-compress:
     internal: true
@@ -252,12 +252,12 @@ tasks:
     deps:
       - task: file-rm
         vars:
-          RFILE: '{{.XZ_FILE}}'
+          FILE: '{{.XZ_FILE}}'
     cmds:
       - xz -0 -T 0 {{.IMG_FILE}}
       - task: show-img-du
         vars:
-          DU_FILE: '{{.XZ_FILE}}'
+          FILE: '{{.XZ_FILE}}'
 
   img:
     internal: true
@@ -318,7 +318,7 @@ tasks:
     deps:
       - task: file-rm
         vars:
-          RFILE: 'build/cloud-init-{{.ARCHITECTURE}}.zip'
+          FILE: 'build/cloud-init-{{.ARCHITECTURE}}.zip'
       - task: cloud-init-user-data
         vars:
           WORK_DIR: '{{.TMP_DIR}}'
@@ -356,15 +356,15 @@ tasks:
     cmds:
       - task: file-rm
         vars:
-          RFILE: '{{.UBU_IMG}}.xz'
+          FILE: '{{.UBU_IMG}}.xz'
       - cmd: wget -q {{.UBU_URL}}
       - task: show-img-du
         vars:
-          DU_FILE: '{{.UBU_IMG}}.xz'
+          FILE: '{{.UBU_IMG}}.xz'
       - cmd: xz -kcd {{.UBU_IMG}}.xz > build/{{.UBU_IMG}}
       - task: show-img-du
         vars:
-          DU_FILE: 'build/{{.UBU_IMG}}'
+          FILE: 'build/{{.UBU_IMG}}'
 
   download-ubuntu-server-lts-img:
     desc: Download and extract Ubuntu Server LTS
