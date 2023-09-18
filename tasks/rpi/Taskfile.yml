@@ -1,6 +1,36 @@
 version: 3
 
 tasks:
+  touch-file-positive:
+    internal: true
+    status:
+      - test -z "$SOURCE_DATE_EPOCH"
+    requires:
+      vars: [FILE]
+    cmds:
+      - touch -d @$SOURCE_DATE_EPOCH {{.FILE}}
+
+  touch-file-negative:
+    internal: true
+    status:
+      - test -n "$SOURCE_DATE_EPOCH"
+    requires:
+      vars: [FILE]
+    cmds:
+      - cmd: touch {{.FILE}}
+
+  touch-file:
+    desc: Touch file
+    requires:
+      vars: [FILE]
+    deps:
+      - task: touch-file-positive
+        vars:
+          FILE: '{{.FILE}}'
+      - task: touch-file-negative
+        vars:
+          FILE: '{{.FILE}}'
+
   novchiq-overlay:
     internal: true
     desc: Build novchiq DTB overlay
@@ -27,7 +57,9 @@ tasks:
       - cp {{if .BUILD_DIR}}{{.BUILD_DIR}}/{{end}}novchiq.dtbo {{.FIRMWARE_DIR}}/overlays
       - mv {{.FIRMWARE_DIR}}/config.txt {{.FIRMWARE_DIR}}/config.ubu
       - cp headless-config-{{.ARCHITECTURE}}.txt {{.FIRMWARE_DIR}}/config.txt
-      - touch {{.FIRMWARE_DIR}}/headless.rpi
+      - task: touch-file
+        vars:
+          FILE: '{{.FIRMWARE_DIR}}/headless.rpi'
 
   install:
     desc: Additional instalation tasks

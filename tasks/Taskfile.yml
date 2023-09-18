@@ -1,5 +1,30 @@
 version: 3
 
+#
+# Based on:
+#
+# Making tar Archives More Reproducible:
+# http://www.gnu.org/software/tar/manual/html_section/Reproducibility.html
+#
+# http://reproducible-builds.org/docs/source-date-epoch/
+#
+vars:
+  TAR_MTIME: --mtime=@${SOURCE_DATE_EPOCH:-0}
+  TAR_MTIME0: --mtime=@0
+  TAR_FLAGS: >-
+    --sort=name --format=posix
+    --pax-option=exthdr.name=%d/PaxHeaders/%f
+    --pax-option=delete=atime,delete=ctime
+    --numeric-owner --owner=0 --group=0
+    --mode=go+u,go-w
+    --clamp-mtime
+  TAR_EXCLUDE: >-
+    --exclude=cloud-init.yq
+    --exclude=.task
+  GZIP_FLAGS: >-
+    --no-name
+    --best
+
 includes:
   boot:
     taskfile: boot/Taskfile.yml
@@ -43,6 +68,12 @@ includes:
     internal: true
 
 tasks:
+  pkg:
+    desc: Create TAR package
+    dir: ..
+    cmds:
+      - env LC_ALL=C tar -c {{.TAR_EXCLUDE}} {{.TAR_FLAGS}} {{.TAR_MTIME}} -f - tasks | gzip {{.GZIP_FLAGS}} > build/tasks.tar.gz
+
   cloud-init-pkg:
     internal: true
     requires:
@@ -50,7 +81,7 @@ tasks:
     dir: '..'
     env:
       TASKS_B64:
-        sh: tar -cz --exclude=cloud-init.yq -f - tasks | base64
+        sh: env LC_ALL=C tar -c {{.TAR_EXCLUDE}} {{.TAR_FLAGS}} {{.TAR_MTIME0}} -f - tasks | gzip {{.GZIP_FLAGS}} | base64
     cmds:
       - yq -i --from-file=tasks/cloud-init.yq {{.USER_DATA}}
 

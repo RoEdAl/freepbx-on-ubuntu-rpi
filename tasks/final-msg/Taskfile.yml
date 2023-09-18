@@ -5,8 +5,11 @@ tasks:
     desc: cloud-init configuration
     requires:
       vars: [USER_DATA]
+    vars:
+      YQ_SCRIPT: >-
+        .final_message = load_str("final-msg.txt")
     cmds:
-      - yq -i --from-file=cloud-init.yq {{.USER_DATA}}
+      - yq -i '{{.YQ_SCRIPT}}' {{.USER_DATA}}
 
   final-msg:
     desc: Show final message

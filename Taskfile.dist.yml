@@ -13,6 +13,24 @@ vars:
   UBUNTU_SERVER_ARM_LTS_IMG: ubuntu-22.04.3-preinstalled-server-armhf+raspi.img
 
 tasks:
+  show-source-epoch-positive:
+    internal: true
+    status:
+      - test -z "$SOURCE_DATE_EPOCH"
+    cmds:
+      - 'echo Source epoch: $(date -d @$SOURCE_DATE_EPOCH) [@$SOURCE_DATE_EPOCH]'
+
+  show-source-epoch-negative:
+    internal: true
+    status:
+      - test -n "$SOURCE_DATE_EPOCH"
+    cmds:
+      - 'echo Source epoch: UNKNOWN'
+
+  show-source-epoch:
+    desc: Show source epoch
+    deps: [show-source-epoch-positive, show-source-epoch-negative]
+
   show-img-du:
     internal: true
     requires:
@@ -21,6 +39,27 @@ tasks:
       - du -h {{.FILE}}
       - du -h --apparent-size {{.FILE}}
     silent: true
+
+  touch-file:
+    desc: Touch file
+    status:
+      - test -z "$SOURCE_DATE_EPOCH"
+    requires:
+      vars: [FILE]
+    cmds:
+      - cmd: >-
+          touch -c -d @$SOURCE_DATE_EPOCH {{.FILE}}
+
+  touch-dir:
+    desc: Touch directory
+    status:
+      - test -z "$SOURCE_DATE_EPOCH"
+    requires:
+      vars: [DIR]
+    dir: '{{.DIR}}'
+    cmds:
+      - cmd: >-
+          find {{.DIR}} -type f -name '*' -exec touch -c -d @$SOURCE_DATE_EPOCH '{}' +
 
   chown:
     internal: true
@@ -55,7 +94,7 @@ tasks:
       vars: [WORK_DIR]
     dir: '{{.WORK_DIR}}'
     cmds:
-      - rm *.sh user-data.yml
+      - rm *.sh user-data.yml user-data
 
   cloud-init-user-data:
     internal: true
@@ -72,12 +111,15 @@ tasks:
           USER_DATA: '{{.USER_DATA}}'
           ARCHITECTURE: '{{.ARCHITECTURE}}'
           BUILD_DIR: '{{.TASKFILE_DIR}}/build'
-      - |
-        cloud-init devel make-mime \
-            -a user-data.yml:cloud-config \
-            -a 01-install-task.sh:x-shellscript \
-            -a 02-run-tasks.sh:x-shellscript \
-             | gzip -qnc > {{.TASKFILE_DIR}}/build/user-data-{{.ARCHITECTURE}}.gz
+      - >-
+        cloud-init devel make-mime
+        -a user-data.yml:cloud-config
+        -a 01-install-task.sh:x-shellscript
+        -a 02-run-tasks.sh:x-shellscript > user-data
+      - gzip -qnc user-data > {{.TASKFILE_DIR}}/build/user-data-{{.ARCHITECTURE}}.gz
+      - task: touch-file
+        vars:
+          FILE: '{{.TASKFILE_DIR}}/build/user-data-{{.ARCHITECTURE}}.gz'
       - defer:
           task: cloud-init-user-data-cleanup
           vars:
@@ -97,6 +139,10 @@ tasks:
       - yq cloud-init/logging.yml > {{.MNT_POINT}}/etc/cloud/cloud.cfg.d/05_logging.cfg
       - cp build/user-data-{{.ARCHITECTURE}}.gz {{.MNT_POINT}}/boot/firmware/user-data
       - yq cloud-init/network-config.yml > {{.MNT_POINT}}/boot/firmware/network-config
+      - for: [etc/cloud/cloud.cfg.d/05_logging.cfg, boot/firmware/user-data, boot/firmware/network-config]
+        task: touch-file
+        vars:
+          FILE: '{{.MNT_POINT}}/{{.ITEM}}'
 
   optimize-system:
     internal: true
@@ -231,9 +277,8 @@ tasks:
     vars:
       UBX_DIR: '{{.TMP_DIR}}/ubx'
     cmds:
-      - fstrim {{.UBX_DIR}}/boot/firmware
-      - fstrim {{.UBX_DIR}}/boot
-      - fstrim {{.UBX_DIR}}
+      - for: [boot/firmware, boot, '']
+        cmd: fstrim {{.UBX_DIR}}{{if .ITEM}}/{{.ITEM}}{{end}}
       - task: img-umount
         vars:
           LOOP_DEV: '{{.UBX_LOOP_DEV}}'
@@ -254,10 +299,14 @@ tasks:
         vars:
           FILE: '{{.XZ_FILE}}'
     cmds:
-      - xz -0 -T 0 {{.IMG_FILE}}
-      - task: show-img-du
+      - xz -qk -C sha256 -T 0 {{.IMG_FILE}}
+      - task: chown
         vars:
           FILE: '{{.XZ_FILE}}'
+      - task: touch-file
+        vars:
+          FILE: '{{.XZ_FILE}}'
+      - defer: rm {{.IMG_FILE}}
 
   img:
     internal: true
@@ -277,12 +326,12 @@ tasks:
         vars:
           UBU_IMG_FILE: 'build/{{.IMG_FILE}}'
           UBX_IMG_FILE: 'build/{{.UBX_IMG_FILE}}'
+      - task: touch-file
+        vars:
+          FILE: 'build/{{.UBX_IMG_FILE}}'
       - task: img-compress
         vars:
           IMG_FILE: 'build/{{.UBX_IMG_FILE}}'
-      - task: chown
-        vars:
-          FILE: 'build/{{.UBX_IMG_FILE}}.xz'
 
   cloud-init-rm:
     internal: true
@@ -297,8 +346,32 @@ tasks:
     requires:
       vars: [WORK_DIR, ARCHITECTURE]
     dir: '{{.WORK_DIR}}'
+    vars:
+      PKG_FILES: >-
+        user-data
+        network-config
+        05_logging.cfg
+        README.txt
+      BSDTAR_OPTS: >-
+        --no-read-sparse
+        --no-acls
+        --no-fflags
+        --no-same-owner
+        --no-same-permissions
+        --no-xattrs
+        --numeric-owner
+        --options=7zip:compression=store
     cmds:
-      - cmd: zip -0 ../cloud-init-{{.ARCHITECTURE}}.zip user-data network-config 05_logging.cfg README.txt
+      - task: touch-dir
+        vars:
+          DIR: '{{.WORK_DIR}}'
+      - cmd: bsdtar -caf ../cloud-init-{{.ARCHITECTURE}}.7z {{.BSDTAR_OPTS}} {{.PKG_FILES}}
+      - task: chown
+        vars:
+          FILE: '{{.WORK_DIR}}/../cloud-init-{{.ARCHITECTURE}}.7z'
+      - task: touch-file
+        vars:
+          FILE: '{{.WORK_DIR}}/../cloud-init-{{.ARCHITECTURE}}.7z'
 
   cloud-init-cleanup:
     internal: true
@@ -339,7 +412,7 @@ tasks:
 
   cloud-init:
     desc: Build cloud-init database
-    deps: [build-dir]
+    deps: [build-dir, show-source-epoch]
     cmds:
       - for: [armhf, arm64]
         task: cloud-init-dep
@@ -383,14 +456,15 @@ tasks:
     dir: build
     desc: Process downloaded Ubuntu images
     aliases: [default]
+    deps: [show-source-epoch]
     vars:
       IMGS:
-        sh: find -maxdepth 1 -type f -name 'ubuntu*preinstalled*+raspi.img'
+        sh: find -maxdepth 1 -type f -name 'ubuntu*preinstalled*+raspi.img' -printf '%f\n'
     cmds:
       - for: { var: IMGS }
         task: img
         vars:
-          IMG_FILE: '{{clean .ITEM}}'
+          IMG_FILE: '{{.ITEM}}'
 
   clean:
     desc: Clean build directory
