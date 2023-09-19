@@ -57,6 +57,7 @@ packages:
   - build-essential
   - pkgconf
   - libicu-dev
+  - mpg321
 
 write_files:
   - path: /lib/systemd/system-preset/asterisk.preset
