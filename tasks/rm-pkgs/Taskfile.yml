@@ -19,16 +19,27 @@ tasks:
     cmds:
       - apt-get -y remove --purge {{.PKGS}}
 
-  rm-plymouth-share:
+  rm-var-lib-bluetooth:
+    internal: true
+    status:
+      - test -z "$(ls -A /var/lib/bluetooth)"
+    cmds:
+      - rm -rf /var/lib/bluetooth/*
+
+  rm-usr-share-plymouth:
     internal: true
     status:
       - test ! -d /usr/share/plymouth
     cmds:
       - rm -rf /usr/share/plymouth
 
+  dir-cleanup:
+    internal: true
+    deps: [rm-var-lib-bluetooth, rm-usr-share-plymouth]
+
   rm-pkgs:
     aliases: [default]
     desc: Remove needless packages
+    deps: [apt-get-remove]
     cmds:
-      - task: apt-get-remove
-      - task: rm-plymouth-share
+      - task: dir-cleanup
