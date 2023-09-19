@@ -104,4 +104,9 @@ tasks:
   rpi:
     aliases: [default]
     desc: Configure Raspberry Pi as headless machine
-    deps: [install]
+    deps:
+      - task: install
+        vars:
+          MNT_POINT: '{{.MNT_POINT}}'
+          BUILD_DIR: '{{.BUILD_DIR}}'
+          ARCHITECTURE: '{{.ARCHITECTURE}}'

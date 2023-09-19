@@ -121,7 +121,7 @@ tasks:
       DPKG_ARCHITECTURE:
         sh: dpkg --print-architecture 
     cmds:
-      - for: [boot, systemd-journal, modprobe, systemd-units, rm-pkgs, pam, yq, freepbx, rpi]
+      - for: [boot, systemd-journal, systemd-units, rm-pkgs, modprobe, pam, yq, freepbx, rpi]
         task: '{{.ITEM}}:default'
         vars:
           MNT_POINT: '{{.MNT_POINT}}'

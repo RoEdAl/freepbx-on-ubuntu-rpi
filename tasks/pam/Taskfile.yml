@@ -7,7 +7,7 @@ tasks:
     preconditions:
       - test -d /etc/pam.d
     dir: /etc/pam.d
-    label: /etc/pam.d
+    label: '{{.TASK}}:/etc/pam.d'
     cmds:
       - cp common-session-noninteractive cron-session
       - sed -i 's/pam_unix.so/pam_unix.so quiet/' cron-session

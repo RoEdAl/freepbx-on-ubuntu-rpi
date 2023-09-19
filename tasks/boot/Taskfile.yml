@@ -15,12 +15,12 @@ tasks:
     status:
       - test -f {{.MNT_POINT}}/boot/firmware/headless.rpi
     cmds:
-      - |
-        sed -i \
-            -e '/^LABEL=writable/s/errors=\([^,[:blank:]]\+\)/errors=\1,commit=15/' \
-            -e '/^LABEL=system-boot/s/\<\S\+\>/defaults,lazytime,tz=UTC,showexec,utf8=1,errors=remount-ro/4' \
-            -e '/^LABEL=system-boot/s/\<\S\+\>/2/6' \
-            {{.MNT_POINT}}/etc/fstab
+      - >-
+        sed -i
+        -e '/^LABEL=writable/s/errors=\([^,[:blank:]]\+\)/errors=\1,commit=15/'
+        -e '/^LABEL=system-boot/s/\<\S\+\>/defaults,lazytime,tz=UTC,showexec,utf8=1,errors=remount-ro/4'
+        -e '/^LABEL=system-boot/s/\<\S\+\>/2/6'
+        {{.MNT_POINT}}/etc/fstab
       - sed -i -e '/^console/s/$/ audit=0/' {{.MNT_POINT}}/boot/firmware/cmdline.txt
       - task: install-fstab-uboot
         vars:

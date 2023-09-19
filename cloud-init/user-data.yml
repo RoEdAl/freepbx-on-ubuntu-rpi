@@ -116,6 +116,7 @@ write_files:
       Ky2/Ujqp/affmIMoMXSozKmga81JSwkADO1JMgUy6dApXz9kP4EE3g==
 
 runcmd:
+  - systemctl set-default multi-user.target
   - systemctl enable dphys-swapfile
 
 updates:

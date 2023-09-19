@@ -5,17 +5,19 @@ tasks:
     internal: true
     env:
       DEBIAN_FRONTEND: noninteractive
+      NEEDRESTART_SUSPEND: 1
+    vars:
+      PKGS: >-
+        rsyslog
+        wpasupplicant
+        multipath-tools
+        snapd
+        mdadm
+        pi-bluetooth
+        bluez
+        plymouth
     cmds:
-      - |
-        apt-get -y remove --purge \
-          rsyslog \
-          wpasupplicant \
-          multipath-tools \
-          snapd \
-          mdadm \
-          pi-bluetooth \
-          bluez \
-          plymouth
+      - apt-get -y remove --purge {{.PKGS}}
 
   rm-plymouth-share:
     internal: true

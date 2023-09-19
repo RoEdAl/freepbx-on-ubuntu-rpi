@@ -15,7 +15,7 @@ tasks:
     status:
       - test -n "{{.MNT_POINT}}" -o -f {{.MNT_POINT}}/boot/firmware/headless.rpi
     cmds:
-      - systemctl restart systemd-journald
+      - systemctl --no-block try-restart systemd-journald
 
   install-files:
     internal: true
