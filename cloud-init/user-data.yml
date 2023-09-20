@@ -1,6 +1,6 @@
 #cloud-config
 
-hostname: freepx
+preserve_hostname: true
 
 chpasswd:
   expire: true
