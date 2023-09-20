@@ -17,7 +17,8 @@ tasks:
         bluez
         plymouth
     cmds:
-      - apt-get -y remove --purge {{.PKGS}}
+      - apt-get -qy --purge remove {{.PKGS}}
+      - apt-get -qy --purge autoremove
 
   rm-var-lib-bluetooth:
     internal: true
