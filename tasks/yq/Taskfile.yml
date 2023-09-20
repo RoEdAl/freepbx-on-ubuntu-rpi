@@ -12,12 +12,12 @@ tasks:
       - rm -rf {{.DIR}}
 
   version:
-    internal: true
+    internal: false
     vars:
       YQ_VERSION:
         sh: yq --version
     cmds:
-      - echo {{.YQ_VERSION}}
+      - '# {{splitList " " .YQ_VERSION | last}}'
 
   download-and-install:
     internal: true
