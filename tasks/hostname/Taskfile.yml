@@ -1,0 +1,21 @@
+version: 3
+
+tasks:
+  hostname-cpuserial:
+    internal: true
+    label: '{{.TASK | replace "cpuserial" .CPUSERIAL}}'
+    requires:
+      vars: [CPUSERIAL]
+    cmds:
+      - hostnamectl hostname freepbx-{{.CPUSERIAL}}
+
+  hostname:
+    desc: Set honstame based on CPU serial number
+    aliases: [default]
+    vars:
+      CPUSERIAL:
+        sh: cat /sys/firmware/devicetree/base/serial-number | sed 's/^0*//'
+    cmds:
+      - task: hostname-cpuserial
+        vars:
+          CPUSERIAL: '{{.CPUSERIAL}}'

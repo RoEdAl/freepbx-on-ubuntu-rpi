@@ -1,23 +1,23 @@
 version: 2
+
 ethernets:
-    eth:
-        match:
-            name: eth*
-        dhcp4: false
-        optional: true
-    enx:
-        match:
-            name: enx*
-        dhcp4: false
-        optional: true
+  eth:
+    match:
+      name: eth*
+    dhcp4: false
+    optional: true
+  enx:
+    match:
+      name: enx*
+    dhcp4: false
+    optional: true
 
 bridges:
-    br-lan:
-        critical: true
-        dhcp4: true
-        link-local: []
-        accept-ra: false
-        interfaces:
-        - eth
-        - enx
-
+  br-lan:
+    critical: true
+    dhcp4: true
+    dhcp4-overrides:
+      send-hostname: false
+    link-local: []
+    accept-ra: false
+    interfaces: [eth, enx]

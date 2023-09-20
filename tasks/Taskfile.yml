@@ -26,6 +26,10 @@ vars:
     --best
 
 includes:
+  hostname:
+    taskfile: hostname/Taskfile.yml
+    dir: hostname
+    internal: true
   boot:
     taskfile: boot/Taskfile.yml
     dir: boot
@@ -121,7 +125,7 @@ tasks:
       DPKG_ARCHITECTURE:
         sh: dpkg --print-architecture 
     cmds:
-      - for: [boot, systemd-journal, systemd-units, rm-pkgs, modprobe, pam, yq, freepbx, rpi]
+      - for: [hostname, boot, systemd-journal, systemd-units, rm-pkgs, modprobe, pam, yq, freepbx, rpi]
         task: '{{.ITEM}}:default'
         vars:
           MNT_POINT: '{{.MNT_POINT}}'

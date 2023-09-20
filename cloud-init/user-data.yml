@@ -1,5 +1,7 @@
 #cloud-config
 
+hostname: freepx
+
 chpasswd:
   expire: true
   users:
@@ -117,9 +119,9 @@ write_files:
       Ky2/Ujqp/affmIMoMXSozKmga81JSwkADO1JMgUy6dApXz9kP4EE3g==
 
 runcmd:
-  - systemctl set-default multi-user.target
-  - systemctl enable dphys-swapfile
+  - [systemctl, set-default, multi-user.target]
+  - [systemctl, enable, dphys-swapfile]
 
 updates:
   network:
-    when: ['boot', 'hotplug']
+    when: [boot, hotplug]
