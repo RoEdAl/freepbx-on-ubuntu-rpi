@@ -16,6 +16,7 @@ tasks:
         pi-bluetooth
         bluez
         plymouth
+        open-iscsi
     cmds:
       - apt-get -qy --purge remove {{.PKGS}}
       - apt-get -qy --purge autoremove
