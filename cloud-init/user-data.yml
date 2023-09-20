@@ -74,6 +74,11 @@ write_files:
     content: CONF_SWAPFACTOR=1
   - path: /etc/sysctl.d/15-swap.conf
     content: vm.swappiness=1
+  - path: /etc/initramfs-tools/modules
+    append: true
+    content: ledtrig-activity
+  - path: /lib/tmpfiles.d/rpi-leds.conf
+    content: 'w! /sys/class/leds/led1/trigger - - - - activity'
   - path: /usr/share/keyrings/nodesource.gpg
     permissions: '0644'
     owner: 'root:root'
