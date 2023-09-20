@@ -109,7 +109,7 @@ tasks:
     desc: Download and install FreePBX (internal)
     vars:
       TMP_DIR:
-        sh: mktemp -d
+        sh: mktemp -d -p /run
     cmds:
       - task: download
         vars:

@@ -11,13 +11,21 @@ tasks:
     cmds:
       - rm -rf {{.DIR}}
 
+  version:
+    internal: true
+    vars:
+      YQ_VERSION:
+        sh: yq --version
+    cmds:
+      - echo {{.YQ_VERSION}}
+
   download-and-install:
     internal: true
     requires:
       vars: [YQ_PKG]
     vars:
       WORK_DIR:
-        sh: mktemp -d
+        sh: mktemp -d -p /run
     dir: '{{.WORK_DIR}}'
     cmds:
       - wget -q {{.YQ_DOWNLOAD_URL}}/{{.YQ_PKG}}.tar.gz
@@ -36,5 +44,5 @@ tasks:
       - task: download-and-install
         vars:
           YQ_PKG: '{{.YQ_PKG}}'
-      - yq --version
+      - task: version
 
