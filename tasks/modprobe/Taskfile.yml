@@ -15,7 +15,7 @@ tasks:
       - test -d /etc/modprobe.d
     cmds:
       - cmd: depmod -ae
-      - cmd: update-initramfs -u
+      - cmd: update-initramfs -u -k all
     summary: |
       Blacklist some kernel modules
 
