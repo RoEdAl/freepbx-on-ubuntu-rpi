@@ -1,0 +1,45 @@
+name: Install required packages
+description: Install required packages
+runs:
+  using: composite
+  steps:
+    - name: Install packages
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: |
+          git wget libarchive-tools
+          build-essential
+          cloud-init
+
+    - name: Create build directory
+      shell: bash
+      run: mkdir build
+
+    - name: Install (go-)task
+      env:
+        TASK_DOWNLOAD_URL: 'http://github.com/go-task/task/releases/latest/download/'
+        TASK_DEB: 'task_linux_amd64.deb'
+      shell: bash
+      working-directory: build
+      run: |
+        echo "URL: ${TASK_DOWNLOAD_URL}/${TASK_DEB}"
+        wget -q ${TASK_DOWNLOAD_URL}/${TASK_DEB}
+        sudo dpkg --install ${TASK_DEB}
+        rm ${TASK_DEB}
+
+    - name: Download yq
+      env:
+        YQ_DOWNLOAD_URL: 'http://github.com/mikefarah/yq/releases/latest/download/'
+        YQ_PKG: 'yq_linux_amd64'
+      shell: bash
+      working-directory: build
+      run: |
+        echo "URL: ${YQ_DOWNLOAD_URL}/${YQ_PKG}.tar.gz"
+        wget -q ${YQ_DOWNLOAD_URL}/${YQ_PKG}.tar.gz
+        tar -xf ${YQ_PKG}.tar.gz
+        sudo mv ${YQ_PKG} /usr/local/bin/yq
+        rm ${YQ_PKG}.tar.gz
+  
+    - name: Git configuration
+      shell: bash
+      run: git config --global advice.detachedHead false
