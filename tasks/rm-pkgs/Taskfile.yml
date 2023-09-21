@@ -17,6 +17,7 @@ tasks:
         bluez
         plymouth
         open-iscsi
+        console-setup-linux
     cmds:
       - apt-get -qy --purge remove {{.PKGS}}
       - apt-get -qy --purge autoremove
