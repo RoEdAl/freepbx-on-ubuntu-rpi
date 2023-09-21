@@ -7,6 +7,6 @@ tasks:
       vars: [USER_DATA]
     vars:
       LOGGING_B64:
-        env: yq ../../cloud-init/logging.yml | base64
+        sh: yq ../../cloud-init/logging.yml | base64
     cmds:
       - yq -i --from-file=cloud-init.yq {{.USER_DATA}}
