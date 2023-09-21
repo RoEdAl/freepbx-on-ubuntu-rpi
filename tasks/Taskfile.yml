@@ -62,6 +62,10 @@ includes:
     taskfile: systemd-units/Taskfile.yml
     dir: systemd-units
     internal: true
+  cloud-init:
+    taskfile: cloud-init/Taskfile.yml
+    dir: cloud-init
+    internal: true
   final-msg:
     taskfile: final-msg/Taskfile.yml
     dir: final-msg
@@ -94,7 +98,7 @@ tasks:
     requires:
       vars: [USER_DATA, ARCHITECTURE, BUILD_DIR]
     cmds:
-      - for: [modprobe, systemd-journal, systemd-units, freepbx, final-msg]
+      - for: [modprobe, systemd-journal, systemd-units, cloud-init, freepbx, final-msg]
         task: '{{.ITEM}}:cloud-init'
         vars:
           USER_DATA: '{{.USER_DATA}}'

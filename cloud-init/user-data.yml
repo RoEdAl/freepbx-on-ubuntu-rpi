@@ -16,6 +16,14 @@ package_upgrade: false
 package_reboot_if_required: false
 
 apt:
+  conf: |
+    APT {
+        Install-Recommends 'false';
+        Get {
+            Assume-Yes 'true';
+            Fix-Broken 'true';
+        }
+    }
   sources:
     nodesource:
       source: |
@@ -59,6 +67,7 @@ packages:
   - build-essential
   - pkgconf
   - libicu-dev
+  - sox
   - mpg321
 
 write_files:
