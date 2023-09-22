@@ -29,6 +29,13 @@ tasks:
     cmds:
       - rm -rf /var/lib/bluetooth/*
 
+  rm-etc-console-setup:
+    internal: true
+    status:
+      - test ! -d /etc/console-setup
+    cmds:
+      - rm -rf /etc/console-setup
+
   rm-usr-share-plymouth:
     internal: true
     status:
@@ -38,7 +45,7 @@ tasks:
 
   dir-cleanup:
     internal: true
-    deps: [rm-var-lib-bluetooth, rm-usr-share-plymouth]
+    deps: [rm-var-lib-bluetooth, rm-usr-share-plymouth, rm-etc-console-setup]
 
   rm-pkgs:
     aliases: [default]
