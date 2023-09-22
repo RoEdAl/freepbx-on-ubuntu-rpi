@@ -96,6 +96,14 @@ tasks:
     cmds:
       - rm *.sh user-data.yml user-data
 
+  cloud-init-log-cfg:
+    internal: true
+    requires:
+      vars: [FILE]
+    dir: cloud-init
+    cmds:
+      - yq -n --from-file=logging.yq > {{.FILE}}
+
   cloud-init-user-data:
     internal: true
     requires:
@@ -116,7 +124,7 @@ tasks:
         -a user-data.yml:cloud-config
         -a 01-install-task.sh:x-shellscript
         -a 02-run-tasks.sh:x-shellscript > user-data
-      - gzip -qnc user-data > {{.TASKFILE_DIR}}/build/user-data-{{.ARCHITECTURE}}.gz
+      - gzip -qnc --best user-data > {{.TASKFILE_DIR}}/build/user-data-{{.ARCHITECTURE}}.gz
       - task: touch-file
         vars:
           FILE: '{{.TASKFILE_DIR}}/build/user-data-{{.ARCHITECTURE}}.gz'
@@ -136,7 +144,9 @@ tasks:
           WORK_DIR: '{{.WORK_DIR}}'
           ARCHITECTURE: '{{.ARCHITECTURE}}'
     cmds:
-      - yq cloud-init/logging.yml > {{.MNT_POINT}}/etc/cloud/cloud.cfg.d/05_logging.cfg
+      - task: cloud-init-log-cfg
+        vars:
+          FILE: '{{.MNT_POINT}}/etc/cloud/cloud.cfg.d/05_logging.cfg'
       - cp build/user-data-{{.ARCHITECTURE}}.gz {{.MNT_POINT}}/boot/firmware/user-data
       - yq cloud-init/network-config.yml > {{.MNT_POINT}}/boot/firmware/network-config
       - for: [etc/cloud/cloud.cfg.d/05_logging.cfg, boot/firmware/user-data, boot/firmware/network-config]
@@ -399,7 +409,9 @@ tasks:
     cmds:
       - yq cloud-init/network-config.yml > {{.TMP_DIR}}/network-config
       - cp build/user-data-{{.ARCHITECTURE}}.gz {{.TMP_DIR}}/user-data
-      - yq cloud-init/logging.yml > {{.TMP_DIR}}/05_logging.cfg
+      - task: cloud-init-log-cfg
+        vars:
+          FILE: '{{.TMP_DIR}}/05_logging.cfg'
       - cp cloud-init/README-pkg.txt {{.TMP_DIR}}/README.txt
       - task: cloud-init-pkg
         vars:

@@ -1,12 +1,35 @@
 version: 3
 
 tasks:
+  logging:
+    internal: true
+    requires:
+      vars: [BUILD_DIR]
+    dir: '../../cloud-init'
+    cmds:
+      - yq -n --from-file=logging.yq > {{.BUILD_DIR}}/05_logging.cfg
+
+  logging-b64:
+    internal: true
+    requires:
+      vars: [BUILD_DIR, USER_DATA]
+    env:
+      LOGGING_CFG: 
+        sh: cat {{.BUILD_DIR}}/05_logging.cfg
+    cmds:
+      - yq -i --from-file=cloud-init.yq {{.USER_DATA}}
+      - defer: rm {{.BUILD_DIR}}/05_logging.cfg
+
   cloud-init:
     desc: cloud-init configuration
     requires:
-      vars: [USER_DATA]
-    vars:
-      LOGGING_B64:
-        sh: yq ../../cloud-init/logging.yml | base64
+      vars: [USER_DATA, BUILD_DIR]
     cmds:
-      - yq -i --from-file=cloud-init.yq {{.USER_DATA}}
+      - task: logging
+        vars:
+          BUILD_DIR: '{{.BUILD_DIR}}'
+      - task: logging-b64
+        vars:
+          BUILD_DIR: '{{.BUILD_DIR}}'
+          USER_DATA: '{{.USER_DATA}}'
+

@@ -1,0 +1,12 @@
+[ load_str("logging.ini") ] as $l |
+$l.[0] anchor = "log_base" |
+$l.[0] style = "literal" |
+
+{ "_log": $l, "log_cfgs": [[0]] } as $c |
+$c.log_cfgs[0][0] alias = "log_base" |
+$c.log_cfgs[0] style = "flow" |
+
+($c._log | key ) head_comment = "Python log configuration(s)" |
+($c.log_cfgs | key) head_comment = "cloud-init log configuration" |
+
+$c

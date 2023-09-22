@@ -1,9 +1,8 @@
 {
 	"path": "/etc/cloud/cloud.cfg.d/05_logging.cfg",
 	"defer": true,
-	"content": strenv(LOGGING_B64)
+	"content": strenv(LOGGING_CFG)
 } as $l |
-$l.content tag |= "!!binary" |
 $l.content style |= "literal" |
 
 .write_files ref $f |
