@@ -43,5 +43,5 @@ jobs:
       with:
         draft: true
         files: |
-          build/cloud-init-arm*.7z
+          cloud-init/cloud-init-arm*.7z
   
