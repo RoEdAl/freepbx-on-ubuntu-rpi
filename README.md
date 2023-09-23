@@ -15,7 +15,7 @@ All editions of *Ubuntu Server* distribution (incluing *Raspberry Pi* ones) have
 ### Basic usage
 
 - Download [Ubutnu Server for Raspberry Pi](http://ubuntu.com/download/raspberry-pi) image and write it to microSD card.
-- [Download](http://github.com/RoEdAl/freepbx-on-ubuntu-rpi/releases/latest/download/) and extract proper *cloud-init* package:
+- [Download](http://github.com/RoEdAl/freepbx-on-ubuntu-rpi/releases/latest) and extract proper *cloud-init* package:
 
     * For 64-bit version use `cloud-init-arm64.7z` package.
     * For 32-bit version use `cloud-init-armhf.7z` package.
