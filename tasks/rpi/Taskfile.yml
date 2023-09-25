@@ -61,11 +61,22 @@ tasks:
         vars:
           FILE: '{{.FIRMWARE_DIR}}/headless.rpi'
 
+  block-eth0-link:
+    requires:
+      vars: [MNT_POINT]
+    status:
+      - test -n "{{.MNT_POINT}}" -o ! -d /sys/class/net/br-lan
+    cmds:
+      - cp -s /dev/null /etc/systemd/network/10-raspi-eth0.link
+
   install:
     desc: Additional instalation tasks
     vars:
       FIRMWARE_DIR: '{{.MNT_POINT}}/boot/firmware'
     deps:
+      - task: block-eth0-link
+        vars:
+          MNT_POINT: '{{.MNT_POINT}}'
       - task: install-files
         vars:
           MNT_POINT: '{{.MNT_POINT}}'
