@@ -74,6 +74,10 @@ includes:
     taskfile: yq/Taskfile.yml
     dir: yq
     internal: true
+  mariadb:
+    taskfile: mariadb/Taskfile.yml
+    dir: mariadb
+    internal: true
 
 tasks:
   pkg:
@@ -98,7 +102,7 @@ tasks:
     requires:
       vars: [USER_DATA, ARCHITECTURE, BUILD_DIR]
     cmds:
-      - for: [modprobe, systemd-journal, systemd-units, cloud-init, freepbx, final-msg]
+      - for: [modprobe, systemd-journal, systemd-units, mariadb, cloud-init, freepbx, final-msg]
         task: '{{.ITEM}}:cloud-init'
         vars:
           USER_DATA: '{{.USER_DATA}}'

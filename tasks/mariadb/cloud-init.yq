@@ -1,0 +1,8 @@
+{   "path": "/etc/mysql/mariadb.conf.d/51-freepbx.conf",
+    "defer": true,
+    "content": load_str("freepbx.conf")
+} as $f |
+$f.content style |= "literal" |
+
+.write_files ref $w |
+$w += $f
