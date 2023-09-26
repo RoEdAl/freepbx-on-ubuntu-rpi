@@ -74,22 +74,22 @@ packages:
 
 write_files:
   - path: /lib/systemd/system-preset/asterisk.preset
-    content: disable asterisk.service
+    content: "disable asterisk.service\n"
   - path: /lib/systemd/system-preset/apache2.preset
-    content: disable apache2.service
+    content: "disable apache2.service\n"
   - path: /lib/systemd/system-preset/dphys-swapfile.preset
-    content: disable dphys-swapfile.service
+    content: "disable dphys-swapfile.service\n"
   - path: /lib/systemd/system-preset/apache-htcacheclean.preset
-    content: disable apache-htcacheclean.service
+    content: "disable apache-htcacheclean.service\n"
   - path: /etc/dphys-swapfile
-    content: CONF_SWAPFACTOR=1
+    content: "CONF_SWAPFACTOR=1\n"
   - path: /etc/sysctl.d/15-swap.conf
-    content: vm.swappiness=1
+    content: "vm.swappiness=1\n"
   - path: /etc/initramfs-tools/modules
     append: true
-    content: ledtrig-activity
+    content: "ledtrig-activity\n"
   - path: /lib/tmpfiles.d/rpi-leds.conf
-    content: 'w! /sys/class/leds/led1/trigger - - - - activity'
+    content: "w! /sys/class/leds/led1/trigger - - - - activity\n"
   - path: /usr/share/keyrings/nodesource.gpg
     permissions: '0644'
     owner: 'root:root'
