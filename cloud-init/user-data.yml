@@ -69,6 +69,8 @@ packages:
   - libicu-dev
   - sox
   - mpg321
+  - picocom
+  - gpiod
 
 write_files:
   - path: /lib/systemd/system-preset/asterisk.preset
