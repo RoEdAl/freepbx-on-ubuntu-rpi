@@ -70,6 +70,8 @@ packages:
   - libicu-dev
   - sox
   - mpg321
+  - lame
+  - ffmpeg
   - picocom
   - gpiod
 
