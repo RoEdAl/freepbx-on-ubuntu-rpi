@@ -33,6 +33,7 @@ apt:
       source: 'ppa:ondrej/php'
 
 packages:
+  - exim4
   - f2fs-tools
   - dphys-swapfile
   - rng-tools
@@ -73,6 +74,8 @@ packages:
   - gpiod
 
 write_files:
+  - path: /lib/systemd/system-preset/exim4.preset
+    content: "disable exim4.service\n"
   - path: /lib/systemd/system-preset/asterisk.preset
     content: "disable asterisk.service\n"
   - path: /lib/systemd/system-preset/apache2.preset
@@ -137,6 +140,7 @@ write_files:
 runcmd:
   - [systemctl, set-default, multi-user.target]
   - [systemctl, enable, dphys-swapfile]
+  - [update-rc.d, exim4, disable]
 
 updates:
   network:
