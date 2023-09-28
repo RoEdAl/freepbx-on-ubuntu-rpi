@@ -1,4 +1,4 @@
-# Unattended instalation of *FreePBX* on *Ubuntu Server for Raspberry Pi* via *cloud-init*.
+# Unattended installation of *FreePBX* on *Ubuntu Server for Raspberry Pi* via *cloud-init*.
 
 This project demonstrates how to create `user-data` (part of `cloud-init` database) with desciption
 how to download and install *FreeBPX* on *Ubuntu Server for Raspberry Pi* at first boot.
